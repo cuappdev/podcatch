@@ -59,7 +59,6 @@ def digest_podcasts():
   # EpisodesDriver(DIRECTORY, storer).eps_from_series()
 
 
-
 def run_schedule():
   """Check schedule and run pending"""
   while 1:
