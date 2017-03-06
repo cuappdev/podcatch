@@ -1,0 +1,7 @@
+# Standard Python Ignores
+venv
+*.pyc
+*.env
+
+# Log files 
+log 
