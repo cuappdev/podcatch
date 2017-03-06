@@ -1,9 +1,15 @@
+# OVERALL IMPORTS
 from flask import Flask, request
 from threading import Thread
 import schedule
 import time
 import os
 
+# PODCAST IMPORTS
+from podcasts.series_driver import SeriesDriver
+from podcasts.episodes_driver import EpisodesDriver
+from podcasts.site_crawler import SiteCrawler
+from podcasts.storers.couchbase_storer import CouchbaseStorer
 
 # Constants
 LOG_FILE           = "log"
@@ -38,9 +44,20 @@ def digest_podcasts():
   Digest most popular podcasts from
   iTunes on a daily-basis
   """
+  # Number
   num = get_log_num()
-  print(num)
-  # TODO - actually load podcasts 
+
+  # Grab all series first
+  # SeriesDriver(BASE_DIR + str(num)).get_popular(SiteCrawler().get_genres())
+
+  # Grab all episodes once we have data stored
+  storer = \
+    (CouchbaseStorer(COUCHBASE_URL)
+    if COUCHBASE_PASSWORD == ''
+    else CouchbaseStorer(COUCHBASE_URL, COUCHBASE_PASSWORD))
+
+  # EpisodesDriver(DIRECTORY, storer).eps_from_series()
+
 
 
 def run_schedule():
@@ -52,7 +69,7 @@ def run_schedule():
 
 # Run the app
 if __name__ == '__main__':
-  schedule.every(10).seconds.do(digest_podcasts)
+  schedule.every(ONE_DAY).seconds.do(digest_podcasts)
   t = Thread(target=run_schedule)
   t.start()
   app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
