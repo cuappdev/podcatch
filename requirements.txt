@@ -8,8 +8,8 @@ Jinja2==2.9.5
 lxml==3.7.3
 MarkupSafe==0.23
 packaging==16.8
-py-podcast==0.1.0
-pyparsing==2.1.10
+py-podcast==1.0.0
+pyparsing==2.2.0
 requests==2.13.0
 schedule==0.4.2
 six==1.10.0
