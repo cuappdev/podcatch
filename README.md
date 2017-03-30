@@ -20,7 +20,7 @@ Test data [`here`](https://www.dropbox.com/s/bg0nrfnfxjp6amc/data.zip?dl=0) (fro
 virtualenv venv
 source venv/bin/activate
 brew install libcouchbase
-sudo pip install -r requirements.txt
+sudo -H pip install -r requirements.txt
 
 # Command to run
 python dev.py
