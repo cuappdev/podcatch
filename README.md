@@ -25,3 +25,29 @@ sudo -H pip install -r requirements.txt
 # Command to run
 python dev.py
 ````
+
+The following queries must be run to establish indexes: 
+
+````
+CREATE PRIMARY INDEX ON `podcasts`;
+````
+
+````
+CREATE INDEX `def_pubDate` ON `podcasts`(`pubDate`) WITH { "defer_build"=true };
+````
+
+````
+CREATE INDEX `def_seriesId` ON `podcasts`(`seriesId`) WITH { "defer_build"=true };
+````
+
+````
+CREATE INDEX `def_seriesTitle` ON `podcasts`(`seriesTitle`) WITH { "defer_build"=true };
+````
+
+````
+CREATE INDEX `def_title` ON `podcasts`(`title`) WITH { "defer_build"=true };
+````
+
+````
+CREATE INDEX `def_type` ON `podcasts`(`type`) WITH { "defer_build"=true };
+````
