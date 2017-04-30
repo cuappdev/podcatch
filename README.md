@@ -33,21 +33,21 @@ CREATE PRIMARY INDEX ON `podcasts`;
 ````
 
 ````
-CREATE INDEX `def_pubDate` ON `podcasts`(`pubDate`) WITH { "defer_build"=true };
+CREATE INDEX `def_pubDate` ON `podcasts`(`pubDate`);
 ````
 
 ````
-CREATE INDEX `def_seriesId` ON `podcasts`(`seriesId`) WITH { "defer_build"=true };
+CREATE INDEX `def_seriesId` ON `podcasts`(`seriesId`);
 ````
 
 ````
-CREATE INDEX `def_seriesTitle` ON `podcasts`(`seriesTitle`) WITH { "defer_build"=true };
+CREATE INDEX `def_seriesTitle` ON `podcasts`(`seriesTitle`);
 ````
 
 ````
-CREATE INDEX `def_title` ON `podcasts`(`title`) WITH { "defer_build"=true };
+CREATE INDEX `def_title` ON `podcasts`(`title`);
 ````
 
 ````
-CREATE INDEX `def_type` ON `podcasts`(`type`) WITH { "defer_build"=true };
+CREATE INDEX `def_type` ON `podcasts`(`type`);
 ````
