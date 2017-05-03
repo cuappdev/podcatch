@@ -3,6 +3,11 @@ from constants import *
 from logpod import LogPod
 from Queue import Queue
 import threading
+import pdb
+import feedparser
+
+from podcasts.models.episode import Episode
+from podcasts.models.series import Series
 
 class SeriesPatcher(object):
   """
@@ -68,5 +73,42 @@ class SeriesPatcher(object):
       True/False depending on if series_id had a new episode to be updated.
       If True, the new episode will also get put in NEW_PODCASTS_BUCKET
     """
+    episode_result = self.p_bucket.n1ql_query('SELECT * FROM `{}` WHERE type="episode" and seriesId={} ORDER BY pubDate DESC'.format(PODCASTS_BUCKET, series_id))
+
+    # Note: we have to do two queries here because we need the series object from the database in order to build the full Episode object
+    series_result = self.p_bucket.n1ql_query('SELECT * FROM `{}` WHERE type="series" and id={}'.format(PODCASTS_BUCKET, series_id)).get_single_result()
+
+    # results are ordered from newest to oldest
+    episode_results = []
+    for row in episode_result:
+      episode_results.append(row)
+
+    rss = feedparser.parse(rss_feed_url)
+
+    # Series()
+
+    # query couchbase for series_id entries length
+    # use EpisodeWorker.request_rss(url)
+    # look into rss['entries'] and find length to check new episodes
+    # rss['entries'][num]['title']
+
+    pdb.set_trace()
+
+
+  def check_diff(self, old_rss_entries, new_rss_entries):
+    """
+    Params:
+      old_entries [list] - list of en 
+      new_entries [list] - 
+    Returns:
+
+    """
+
+
     pass
+
+if __name__=="__main__":
+  patcher = SeriesPatcher("lol")
+  patcher.patch_series(1001228357, "http://feed.theplatform.com/f/kYEXFC/zVfDzVbQRltO");
+
 
