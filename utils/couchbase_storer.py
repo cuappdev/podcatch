@@ -22,7 +22,7 @@ class CouchbaseStorer(Storer):
 
   def _connect_db(self):
     """
-    Connect the DB
+    Connect the DB using the url for this storer object
     """
     return Bucket(self.url) if self.password is None else Bucket(self.url, password=self.password)
 
