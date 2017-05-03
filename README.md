@@ -5,11 +5,12 @@ Microservice to `catch` podcast information from iTunes on a daily basis
 ## Required Environment Variables
 
 ````bash
-COUCHBASE_URL
-COUCHBASE_PASSWORD
+COUCHBASE_BASE_URL
 # Various buckets' names
 PODCASTS_BUCKET
-NEW_PODCASTS
+PODCASTS_BUCKET_PASSWORD
+NEW_PODCASTS_BUCKET
+NEW_PODCASTS_BUCKET_PASSWORD
 ````
 
 ## Development DB Test Data
