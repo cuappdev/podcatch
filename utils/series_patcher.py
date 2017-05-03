@@ -1,6 +1,8 @@
 from couchbase.bucket import Bucket
 from constants import *
 from logpod import LogPod
+from Queue import Queue
+import threading
 
 class SeriesPatcher(object):
   """
@@ -36,4 +38,22 @@ class SeriesPatcher(object):
     ).get_single_result()
     return result['$1']
 
-# print SeriesPatcher('lol').num_series()
+  def patch_all(self):
+    """
+    Patch all series that currently exist in the database
+    """
+    pass
+
+  def patch(self, rss_feed_tups, check_timestamp=True):
+    """
+    Given a list of (series_id, rss_feed_url, last_update) tuples, patch each
+      rss_feed_tups: list of (series_id, rss_feed_url, last_update) tuples
+      check_timestamp: indicates whether we should only patch if the previous
+        patch has turned stale (a.k.a we SHOULD look at the timestamp), or if
+        we should patch regardless (a.k.a. IGNORE the previous timestamp)
+    """
+    pass
+
+
+
+print SeriesPatcher('lol').num_series()
