@@ -6,9 +6,11 @@ import os
 class LogPod(object):
   """
   Framework for logging information about podcasts
+  Each log file will have a name corresponding to the series_id of the podcast
+  and there will only be one line in the file indicating its last update time.
   """
 
-  def __init__(self, s_dir, update_time=15 * constants.MINUTE):
+  def __init__(self, s_dir, update_time=15*constants.MINUTE):
     """
     Constructor:
       s_dir: location to store logs
@@ -31,6 +33,7 @@ class LogPod(object):
     series_ids = []
     for _, _, filenames in os.walk('./{}'.format(self.dir)):
       series_ids.extend(filenames)
+
     return series_id in series_ids
 
   def last_updated(self, series_id):
@@ -60,7 +63,7 @@ class LogPod(object):
       """
       Overwrite file `f` with time `t`
       """
-      f.write(int(time.mktime(t.timetuple())))
+      f.write(str(int(time.mktime(t.timetuple()))))
 
     file_name = './{}/{}'.format(self.dir, str(series_id))
     with open(file_name, 'w') as f:

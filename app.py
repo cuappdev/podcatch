@@ -5,6 +5,7 @@ import schedule
 import time
 import os
 import pdb
+import json
 
 # PODCAST IMPORTS
 from podcasts.series_driver import SeriesDriver
@@ -44,9 +45,24 @@ def run_schedule():
     time.sleep(1)
 
 
+@app.route('/refresh/<series_id>')
+def refresh(series_id):
+  """
+  Params:
+    series_id [int] - id for the series as designated by apple
+
+  Returns:
+    JSON object with keys "success" (either 0 or 1) and "episode" 
+    that contains the entire episode object.
+
+  Given a series_id, checks to see if we should request apple
+  to get new episodes. If there are new episodes, returns the new episode object.
+  """ 
+  episode = {"series_id": series_id, "episode-id": 420, "description":"testing"}
+  response = {"success": 0, "episode": episode}
+  return json.dumps(response)
 
 
-# Run the app
 if __name__ == '__main__':
   # schedule.every(ONE_DAY).seconds.do(digest_podcasts)
   # t = Thread(target=run_schedule)

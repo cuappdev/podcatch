@@ -15,11 +15,11 @@ class SeriesPatcher(object):
       s_dir: directory for logging
     """
     # Logging to files
-    self.podlog = LogPod(s_dir)
+    self.podlog = LogPod(s_dir, UPDATE_TIME)
 
     # Bucket connections
-    self.p_bucket     = Bucket('couchbase://{}/{}'.format(COUCHBASE_URL, PODCASTS_BUCKET))
-    self.n_p_bucket = Bucket('couchbase://{}/{}'.format(COUCHBASE_URL, NEW_PODCASTS_BUCKET))
+    self.p_bucket     = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, PODCASTS_BUCKET))
+    self.n_p_bucket = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, NEW_PODCASTS_BUCKET))
 
     # Attempt this b/c primary index is required
     try:
@@ -44,16 +44,29 @@ class SeriesPatcher(object):
     """
     pass
 
-  def patch(self, rss_feed_tups, check_timestamp=True):
+  def patch_multiple(self, rss_feed_tups, check_timestamp=True):
     """
-    Given a list of (series_id, rss_feed_url, last_update) tuples, patch each
-      rss_feed_tups: list of (series_id, rss_feed_url, last_update) tuples
-      check_timestamp: indicates whether we should only patch if the previous
-        patch has turned stale (a.k.a we SHOULD look at the timestamp), or if
-        we should patch regardless (a.k.a. IGNORE the previous timestamp)
+    Params:
+      rss_feed_tups [list] - list of (series_id, rss_feed_url, last_update) tuples
+
+    Returns:
+      a list of True/False indicating whether or not the series in the index
+      had a new episode to be updated.
     """
     pass
 
+  def patch_series(self, series_id, rss_feed_url, check_timestamp=True):
+    """
+    Params:
+      series_id [int] - apple series id
+      rss_feed_url [string] - rss url to query for the series
+      check_timestamp [bool] - indicates whether we should only patch if the previous
+        patch has turned stale (a.k.a we SHOULD look at the timestamp), or if
+        we should patch regardless (a.k.a. IGNORE the previous timestamp)
 
+    Returns:
+      True/False depending on if series_id had a new episode to be updated.
+      If True, the new episode will also get put in NEW_PODCASTS_BUCKET
+    """
+    pass
 
-print SeriesPatcher('lol').num_series()
