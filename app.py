@@ -9,18 +9,17 @@ import os
 from podcasts.series_driver import SeriesDriver
 from podcasts.episodes_driver import EpisodesDriver
 from podcasts.site_crawler import SiteCrawler
-from podcasts.storers.couchbase_storer import CouchbaseStorer
+from utils.couchbase_storer import CouchbaseStorer
 
 # Constants
-LOG_FILE           = "log"
-BASE_DIR           = "csv"
+LOG_FILE           = 'log'
+BASE_DIR           = 'csv'
 COUCHBASE_URL      = os.environ['COUCHBASE_URL']
 COUCHBASE_PASSWORD = os.environ['COUCHBASE_PASSWORD']
 ONE_DAY            = 86400
 
 # Flask App
 app = Flask(__name__)
-
 
 def get_log_num():
   """Get and update log number"""
@@ -37,7 +36,6 @@ def get_log_num():
 
   # Return originally read number
   return num
-
 
 def digest_podcasts():
   """
@@ -58,7 +56,6 @@ def digest_podcasts():
 
   # EpisodesDriver(DIRECTORY, storer).eps_from_series()
 
-
 def run_schedule():
   """Check schedule and run pending"""
   while 1:
@@ -68,7 +65,7 @@ def run_schedule():
 
 # Run the app
 if __name__ == '__main__':
-  schedule.every(ONE_DAY).seconds.do(digest_podcasts)
-  t = Thread(target=run_schedule)
-  t.start()
+  # schedule.every(ONE_DAY).seconds.do(digest_podcasts)
+  # t = Thread(target=run_schedule)
+  # t.start()
   app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)

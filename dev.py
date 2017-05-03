@@ -29,11 +29,9 @@ def write_to_cb():
 
   # Load each into Couchbase
   for j in JSONS:
-    print 'Storing ' + str(j['series']['id']) + \
-      ' in Couchbase'
+    print 'Storing {} in Couchbase'.format(str(j['series']['id']))
     storer.store(j)
     time.sleep(0.5)
 
-
-# Run the task
-write_to_cb()
+if __name__ == '__main__':
+  write_to_cb()
