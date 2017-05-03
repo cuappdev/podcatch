@@ -7,6 +7,9 @@ Microservice to `catch` podcast information from iTunes on a daily basis
 ````bash
 COUCHBASE_URL
 COUCHBASE_PASSWORD
+# Various buckets' names
+PODCASTS_BUCKET
+NEW_PODCASTS
 ````
 
 ## Development DB Test Data
@@ -26,7 +29,7 @@ sudo -H pip install -r requirements.txt
 python dev.py
 ````
 
-The following queries must be run to establish indexes: 
+The following queries must be run to establish indexes:
 
 ````
 CREATE PRIMARY INDEX ON `podcasts`;
