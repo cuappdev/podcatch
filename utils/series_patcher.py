@@ -12,7 +12,7 @@ class SeriesPatcher(object):
   def __init__(self, s_dir):
     """
     Constructor: sets up file logging + all bucket connections
-      s_dir: directory for logging
+      s_dir [string] - directory name for logging
     """
     # Logging to files
     self.podlog = LogPod(s_dir, UPDATE_TIME)
@@ -69,4 +69,3 @@ class SeriesPatcher(object):
       If True, the new episode will also get put in NEW_PODCASTS_BUCKET
     """
     pass
-
