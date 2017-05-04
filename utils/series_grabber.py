@@ -5,6 +5,7 @@ from couchbase_storer import CouchbaseStorer
 
 # Py-Podcast
 from podcasts.series_crawler import SeriesCrawler
+from podcasts.episode_worker import EpisodeWorker
 from podcasts.site_crawler import SiteCrawler
 from podcasts.models.series import Series
 from podcasts.constants import *
@@ -136,21 +137,28 @@ class SeriesGrabberDriver(object):
     Params:
       new_series [list of Series] - List of new series
     """
-    # Establish queue
-    series_queue = Queue()
+    # Threads
+    threads = []
 
     # Spawn threads
-    for i in xrange(self.num_threads):
-      t = PodcastStorerWorker(series_queue, self.storer)
-      t.daemon = True
+    for i in xrange(20):
+      t = EpisodeWorker(self.storer, new_series, i)
+      threads.append(t)
       t.start()
 
-    # Load up the queue with "jobs"
-    for series in new_series:
-      series_queue.put(series)
-
     # Wait for threads to finish
-    series_queue.join()
+    for t in threads:
+      t.join()
+
+  def go(self):
+    """
+    Get the world
+    """
+    urls = SiteCrawler().all_urls() # -> all URLs on iTunes preview website
+    ids = self.get_ids(urls)
+    new_ids = self.new_series_ids(ids)
+    new_series = self.new_series(new_ids)
+    self.update_db(new_series)
 
 
 class SeriesIdWorker(threading.Thread):
@@ -198,37 +206,11 @@ class SeriesIdWorker(threading.Thread):
       self.logger.info('Got IDs from {}'.format(new_url))
 
 
-class PodcastStorerWorker(threading.Thread):
-  """
-  Thread that deals with grabbing podcast info from series RSS feeds,
-  composing
-  """
-
-  def __init__(self, series_queue, storer):
-    """
-    Constructor:
-      series_queue [Series Queue] - queue of series from which to grab
-        episodes for + build a proper JSON
-      storer [CouchbaseStorer] - used to actually store podcast info
-    """
-    pass
-
-  def run(self):
-    """
-    Request episode info from RSS feeds, build proper dictionary + store
-    resultant in Couchbase
-    """
-    pass
-
 if __name__ == '__main__':
   # Pretty printer
   pp = pprint.PrettyPrinter()
-
-  # urls = SiteCrawler().all_urls() # -> all URLs on iTunes preview website
-
   grabber = SeriesGrabberDriver()
-  ids =  grabber.get_ids(['https://itunes.apple.com/us/genre/podcasts-business/id1321?mt=2'])
+  ids =  grabber.get_ids(['https://itunes.apple.com/us/genre/podcasts-science-medicine/id1315?mt=2'])
   new_ids = grabber.new_series_ids(ids)
-  series = grabber.new_series(new_ids)
-  for series_dict in [s.__dict__ for s in series]:
-    pp.pprint(series_dict)
+  new_series = grabber.new_series(new_ids)
+  grabber.update_db(new_series)
