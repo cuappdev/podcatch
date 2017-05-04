@@ -1,12 +1,25 @@
+# Local
 from constants import *
 from logpod import LogPod
-from Queue import Queue
-from podcasts.series_crawler import SeriesCrawler
 from couchbase_storer import CouchbaseStorer
+
+# Py-Podcast
+from podcasts.series_crawler import SeriesCrawler
 from podcasts.site_crawler import SiteCrawler
+from podcasts.models.series import Series
+from podcasts.constants import *
+from podcasts.api import API
+
+# Couchbase
 from couchbase.exceptions import NotFoundError
 from couchbase.bucket import Bucket
+
+# Native Python
+from Queue import Queue
+
+# Imports
 import threading
+import urllib
 import log
 
 class SeriesGrabberDriver(object):
@@ -87,6 +100,26 @@ class SeriesGrabberDriver(object):
         new_ids.add(s_id)
     return list(new_ids)
 
+  def new_series(self, new_ids):
+    """
+    Grabs new series
+    Params:
+      new_ids [list of strings] - List of series' ids, reflecting series that
+        are not currently in the database
+    Returns:
+      A list of Series objects
+    """
+    series_jsons = []
+    i = 0; j = 100
+    while(i < len(new_ids)):
+      curr_ids = new_ids[i:j]
+      ids_with_coms = ','.join(curr_ids)
+      id_param = { 'id': ids_with_coms }
+      results = API().req_itunes(ITUNES_LOOKUP_URL + urllib.urlencode(id_param)).json()['results']
+      series_jsons.extend(results)
+      i += 100; j+= 100;
+    return [Series.from_json(j) for j in series_jsons]
+
 class SeriesIdWorker(threading.Thread):
   """
   Thread that works on contributing to the bag of series_ids
@@ -133,5 +166,8 @@ class SeriesIdWorker(threading.Thread):
 
 if __name__ == '__main__':
   # urls = SiteCrawler().all_urls()
-  ids =  SeriesGrabberDriver().get_ids(['https://itunes.apple.com/us/genre/podcasts-business/id1321?mt=2'])
-  print SeriesGrabberDriver().new_series_ids(ids)
+  grabber = SeriesGrabberDriver()
+  ids =  grabber.get_ids(['https://itunes.apple.com/us/genre/podcasts-business/id1321?mt=2'])
+  new_ids = grabber.new_series_ids(ids)
+  series = grabber.new_series(new_ids)
+  print series
