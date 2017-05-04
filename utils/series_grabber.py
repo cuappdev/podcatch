@@ -22,7 +22,7 @@ class SeriesGrabberDriver(object):
         grabbing new series
     """
     self.num_threads = num_threads
-    self.bucket = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, PODCASTS_BUCKET))
+    self.bucket      = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, PODCASTS_BUCKET))
 
   def get_ids(self, urls):
     """
@@ -30,8 +30,8 @@ class SeriesGrabberDriver(object):
     Params:
       urls [list of string URLs] - Indicates the pages to retrieve IDs from
     Returns:
-      A set of ids as strings retrieved from the pages provided via the
-      `urls` param
+      A list of ids as strings retrieved from the pages provided via the
+      urls param (no duplicates)
     """
 
     # Load up the queue
@@ -43,7 +43,7 @@ class SeriesGrabberDriver(object):
 
     # Spawn threads
     for i in xrange(self.num_threads):
-      t = SeriesGrabberWorker(genre_url_queue, id_set, set_lock)
+      t = SeriesIdWorker(genre_url_queue, id_set, set_lock)
       t.daemon = True
       t.start()
 
@@ -55,7 +55,7 @@ class SeriesGrabberDriver(object):
     genre_url_queue.join()
 
     # Return the resulting set
-    return id_set
+    return list(id_set)
 
   def in_db(self, series_id):
     """
@@ -71,7 +71,23 @@ class SeriesGrabberDriver(object):
     except NotFoundError as e:
       return False
 
-class SeriesGrabberWorker(threading.Thread):
+  def new_series_ids(self, ids):
+    """
+    Determines which series are new by checking the database in a multi-threaded
+    manner
+    Params:
+      ids [list of strings] - List of series ids retrieved from iTunes site
+    Returns:
+      A list of ids in string form, reflecting the series that are new and
+      not in the database currently
+    """
+    new_ids = set()
+    for s_id in ids:
+      if not self.in_db(s_id):
+        new_ids.add(s_id)
+    return list(new_ids)
+
+class SeriesIdWorker(threading.Thread):
   """
   Thread that works on contributing to the bag of series_ids
   retrieved from iTunes, indicating what podcasts are currently
@@ -81,12 +97,12 @@ class SeriesGrabberWorker(threading.Thread):
   def __init__(self, genre_url_queue, id_set, set_lock):
     """
     Constructor:
-      genre_url_queue [int] - Concurrently-safe queue filled with genre,
+      genre_url_queue [string queue] - Concurrently-safe queue filled with genre
         paginated URLs that we're grabbing series_ids froms
       id_set [set of ints] - Set of series_ids seen
-      set_lock [lock] - Lock needed to add things to the global id_set
+      set_lock [Lock] - Lock needed to add things to the global id_set
     """
-    super(SeriesGrabberWorker, self).__init__()
+    super(SeriesIdWorker, self).__init__()
     self.q        = genre_url_queue
     self.set_lock = set_lock
     self.id_set   = id_set
@@ -117,5 +133,5 @@ class SeriesGrabberWorker(threading.Thread):
 
 if __name__ == '__main__':
   # urls = SiteCrawler().all_urls()
-  print SeriesGrabberDriver().get_ids(['https://itunes.apple.com/us/genre/podcasts-business/id1321?mt=2'])
-  print SeriesGrabberDriver().in_db('910990031')
+  ids =  SeriesGrabberDriver().get_ids(['https://itunes.apple.com/us/genre/podcasts-business/id1321?mt=2'])
+  print SeriesGrabberDriver().new_series_ids(ids)
