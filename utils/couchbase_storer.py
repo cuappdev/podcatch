@@ -10,6 +10,22 @@ class CouchbaseStorer(Storer):
   Storer of podcasts in Couchbase
   """
 
+  # MARK - Static details
+
+  @staticmethod
+  def series_key_from_id(series_id):
+    """
+    Static method defining the key generation logic for
+    storing a series in Couchbase
+    """
+    return '{}:{}'.format(str(series_id), str(sys.maxsize))
+
+  @staticmethod
+  def episode_key_from_info(series_id, pub_date):
+    return '{}:{}'.format(str(series_id), str(pub_date))
+
+  # MARK - Instance details 
+
   def __init__(self, url, password=None):
     """
     Constructor
@@ -30,13 +46,13 @@ class CouchbaseStorer(Storer):
     """
     Series key for Couchbase
     """
-    return '{}:{}'.format(str(series_dict['id']), str(sys.maxsize))
+    return CouchbaseStorer.series_key_from_id(series_dict['id'])
 
   def _make_episode_key(self, series_id, episode_dict):
     """
     Episode key for Couchbase
     """
-    return '{}:{}'.format(str(series_id), str(episode_dict['pubDate']))
+    return CouchbaseStorer.episode_key_from_info(series_id, episode_dict['pubDate'])
 
   def store(self, result_dict):
     """
@@ -59,6 +75,6 @@ class CouchbaseStorer(Storer):
         bulk_upsert.clear()
         break
       except Exception:
-        print 'WE GOT AN EXCEPTION BUT TRYING AGAIN'
+        print 'Exception Occurred: Trying Again'
         self.db = self._connect_db()
     self.lock.release()
