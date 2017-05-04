@@ -21,6 +21,7 @@ from Queue import Queue
 import threading
 import urllib
 import log
+import pprint
 
 class SeriesGrabberDriver(object):
   """
@@ -34,8 +35,16 @@ class SeriesGrabberDriver(object):
       num_threads [int] - Number of threads driving the process of
         grabbing new series
     """
+    # Used for setting fields
+    podcast_url      = 'couchbase://{}/{}'.format(COUCHBASE_BASE_URL, PODCASTS_BUCKET)
+    podcast_pass     = PODCASTS_BUCKET_PASSWORD
+    # Fields
     self.num_threads = num_threads
-    self.bucket      = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, PODCASTS_BUCKET))
+    self.bucket      = (Bucket(podcast_url) if podcast_pass == ''
+                        else Bucket(podcast_url, podcast_pass))
+    self.storer      = (CouchbaseStorer(podcast_url) if podcast_pass == ''
+                        else CouchbaseStorer(podcast_url, podcast_pass))
+    self.logger      = log.logger
 
   def get_ids(self, urls):
     """
@@ -46,8 +55,7 @@ class SeriesGrabberDriver(object):
       A list of ids as strings retrieved from the pages provided via the
       urls param (no duplicates)
     """
-
-    # Load up the queue
+    # Establish queue
     genre_url_queue = Queue()
 
     # Queue, Id Set, + Set Lock
@@ -97,6 +105,7 @@ class SeriesGrabberDriver(object):
     new_ids = set()
     for s_id in ids:
       if not self.in_db(s_id):
+        self.logger.info('Found a new series of ID: {}'.format(s_id))
         new_ids.add(s_id)
     return list(new_ids)
 
@@ -120,6 +129,30 @@ class SeriesGrabberDriver(object):
       i += 100; j+= 100;
     return [Series.from_json(j) for j in series_jsons]
 
+  def update_db(self, new_series):
+    """
+    Grabs episodes corresponding to new series -> drops them in the db in a
+    multi-threaded manner
+    Params:
+      new_series [list of Series] - List of new series
+    """
+    # Establish queue
+    series_queue = Queue()
+
+    # Spawn threads
+    for i in xrange(self.num_threads):
+      t = PodcastStorerWorker(series_queue, self.storer)
+      t.daemon = True
+      t.start()
+
+    # Load up the queue with "jobs"
+    for series in new_series:
+      series_queue.put(series)
+
+    # Wait for threads to finish
+    series_queue.join()
+
+
 class SeriesIdWorker(threading.Thread):
   """
   Thread that works on contributing to the bag of series_ids
@@ -130,7 +163,7 @@ class SeriesIdWorker(threading.Thread):
   def __init__(self, genre_url_queue, id_set, set_lock):
     """
     Constructor:
-      genre_url_queue [string queue] - Concurrently-safe queue filled with genre
+      genre_url_queue [string Queue] - Concurrently-safe queue filled with genre
         paginated URLs that we're grabbing series_ids froms
       id_set [set of ints] - Set of series_ids seen
       set_lock [Lock] - Lock needed to add things to the global id_set
@@ -164,10 +197,38 @@ class SeriesIdWorker(threading.Thread):
       self.q.task_done()
       self.logger.info('Got IDs from {}'.format(new_url))
 
+
+class PodcastStorerWorker(threading.Thread):
+  """
+  Thread that deals with grabbing podcast info from series RSS feeds,
+  composing
+  """
+
+  def __init__(self, series_queue, storer):
+    """
+    Constructor:
+      series_queue [Series Queue] - queue of series from which to grab
+        episodes for + build a proper JSON
+      storer [CouchbaseStorer] - used to actually store podcast info
+    """
+    pass
+
+  def run(self):
+    """
+    Request episode info from RSS feeds, build proper dictionary + store
+    resultant in Couchbase
+    """
+    pass
+
 if __name__ == '__main__':
-  # urls = SiteCrawler().all_urls()
+  # Pretty printer
+  pp = pprint.PrettyPrinter()
+
+  # urls = SiteCrawler().all_urls() # -> all URLs on iTunes preview website
+
   grabber = SeriesGrabberDriver()
   ids =  grabber.get_ids(['https://itunes.apple.com/us/genre/podcasts-business/id1321?mt=2'])
   new_ids = grabber.new_series_ids(ids)
   series = grabber.new_series(new_ids)
-  print series
+  for series_dict in [s.__dict__ for s in series]:
+    pp.pprint(series_dict)

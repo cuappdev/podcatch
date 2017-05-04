@@ -24,7 +24,7 @@ class CouchbaseStorer(Storer):
   def episode_key_from_info(series_id, pub_date):
     return '{}:{}'.format(str(series_id), str(pub_date))
 
-  # MARK - Instance details 
+  # MARK - Instance details
 
   def __init__(self, url, password=None):
     """
