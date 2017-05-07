@@ -128,7 +128,7 @@ class SeriesGrabberDriver(object):
       results = API().req_itunes(ITUNES_LOOKUP_URL + urllib.urlencode(id_param)).json()['results']
       series_jsons.extend(results)
       i += 100; j+= 100;
-    return [Series.from_json(j) for j in series_jsons]
+    return [Series.from_itunes_json(j) for j in series_jsons]
 
   def update_db(self, new_series):
     """
@@ -210,7 +210,7 @@ if __name__ == '__main__':
   # Pretty printer
   pp = pprint.PrettyPrinter()
   grabber = SeriesGrabberDriver()
-  ids =  grabber.get_ids(['https://itunes.apple.com/us/genre/podcasts-science-medicine/id1315?mt=2'])
+  ids =  grabber.get_ids(['https://itunes.apple.com/us/genre/podcasts-science-medicine/id1315?mt=2&letter=D'])
   new_ids = grabber.new_series_ids(ids)
   new_series = grabber.new_series(new_ids)
   grabber.update_db(new_series)

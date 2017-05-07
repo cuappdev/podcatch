@@ -1,10 +1,12 @@
 from couchbase.bucket import Bucket
+from couchbase_storer import CouchbaseStorer
 from constants import *
 from logpod import LogPod
 from Queue import Queue
 import threading
 import pdb
 import feedparser
+import log
 
 from podcasts.models.episode import Episode
 from podcasts.models.series import Series
@@ -24,7 +26,10 @@ class SeriesPatcher(object):
 
     # Bucket connections
     self.p_bucket     = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, PODCASTS_BUCKET))
-    self.n_p_bucket = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, NEW_PODCASTS_BUCKET))
+    self.n_p_bucket   = Bucket('couchbase://{}/{}'.format(COUCHBASE_BASE_URL, NEW_PODCASTS_BUCKET))
+    self.n_p_storer   = (CouchbaseStorer(NEW_PODCASTS_BUCKET_URL) if NEW_PODCASTS_BUCKET_PASSWORD == ''
+                        else CouchbaseStorer(NEW_PODCASTS_BUCKET_URL, NEW_PODCASTS_BUCKET_PASSWORD))
+    self.logger       = log.logger
 
     # Attempt this b/c primary index is required
     try:
@@ -32,7 +37,7 @@ class SeriesPatcher(object):
         'CREATE PRIMARY INDEX ON `{}`'.format(NEW_PODCASTS_BUCKET)
       ).execute()
     except Exception as e:
-      print 'Primary index already created'
+      print 'Primary index already created. Skipping this..'
 
   def num_series(self):
     """
@@ -62,6 +67,9 @@ class SeriesPatcher(object):
 
   def patch_series(self, series_id, rss_feed_url, check_timestamp=True):
     """
+    Checks the RSS feed of the series and updates the new podcasts bucket 
+    if there are new episodes.
+
     Params:
       series_id [int] - apple series id
       rss_feed_url [string] - rss url to query for the series
@@ -73,42 +81,51 @@ class SeriesPatcher(object):
       True/False depending on if series_id had a new episode to be updated.
       If True, the new episode will also get put in NEW_PODCASTS_BUCKET
     """
-    episode_result = self.p_bucket.n1ql_query(
-      'SELECT * FROM `{}` WHERE type="episode" and seriesId={} ORDER BY pubDate DESC'.format(PODCASTS_BUCKET, series_id)
-    )
+    if check_timestamp and not self.podlog.needs_update(series_id):
+      return False # no need to update
 
-    # Note: we have to do two queries here because we need the series object from the database in order to build the full Episode object
-    series_result = self.p_bucket.n1ql_query(
-      'SELECT * FROM `{}` WHERE type="series" and id={}'.format(PODCASTS_BUCKET, series_id)
-    ).get_single_result()
+    episode_result = self.p_bucket.n1ql_query(
+      'SELECT * FROM `{}` WHERE type="episode" and seriesId={} ORDER BY pubDate DESC'.format(PODCASTS_BUCKET, series_id))
+
+    # Note: we have to do a query here because we need the series object from the database in order to build the full Episode object
+    series_json = self.p_bucket.get(CouchbaseStorer.series_key_from_id(series_id)).value
+    s = Series.from_db_json(series_json)
 
     # results are ordered from newest to oldest
     episode_results = []
     for row in episode_result:
       episode_results.append(row)
 
+    # we should already have at least 1
+    assert len(episode_results) > 0 
+
+    # results are ordered from newest to oldest
     rss = feedparser.parse(rss_feed_url)
+    rss_len = len(rss['entries'])
 
-    # Series()
+    # sanity check
+    assert rss_len >= len(episode_results)
 
-    # query couchbase for series_id entries length
-    # use EpisodeWorker.request_rss(url)
-    # look into rss['entries'] and find length to check new episodes
-    # rss['entries'][num]['title']
+    diff_len = rss_len - len(episode_results)
+    if diff_len == 0:
+      # sanity check
+      assert rss['entries'][0]['title'] == episode_results[0]['podcasts']['title']
+      self.logger.info('Nothing to update from series: {}, title: {}'.format(series_id, series_json['title']))
+      return False
 
-    pdb.set_trace()
+    self.logger.info('There are [{}] episodes to patch...'.format(diff_len))
 
+    # make Episode objects out of only the new RSS entries
+    ep_dicts = []
+    for i in range(diff_len):
+      rss_entry = rss['entries'][i]
+      ep = Episode(s, rss_entry).__dict__
+      ep_dicts.append(ep)
+      self.logger.info('Storing new episode_title: {}, series_title: {}'.format(ep['title'], ep['seriesTitle']))
 
-  def check_diff(self, old_rss_entries, new_rss_entries):
-    """
-    Params:
-      old_entries [list] - list of en
-      new_entries [list] -
-    Returns:
-
-    """
-    pass
+    self.n_p_storer.store_episodes(series_id, ep_dicts)
+    return True
 
 if __name__=="__main__":
   patcher = SeriesPatcher("lol")
-  patcher.patch_series(1001228357, "http://feed.theplatform.com/f/kYEXFC/zVfDzVbQRltO");
+  patcher.patch_series(1002937870, "http://feeds.soundcloud.com/users/soundcloud:users:156542883/sounds.rss");

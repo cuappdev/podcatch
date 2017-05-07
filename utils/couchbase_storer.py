@@ -54,6 +54,22 @@ class CouchbaseStorer(Storer):
     """
     return CouchbaseStorer.episode_key_from_info(series_id, episode_dict['pubDate'])
 
+  def store_episodes(self, series_id, episodes):
+    """
+    Bulk upsert for Episode objects
+
+    Params:
+      series_id [int] - iTunes series id
+      episodes [list] - list of Episode objects to be upserted into the storer
+    """
+    bulk_upsert = dict()
+    for e in episodes:
+      bulk_upsert[self._make_episode_key(series_id, e)] = e
+
+    self.lock.acquire()
+    self.do_bulk_upsert(bulk_upsert)
+    self.lock.release()
+
   def store(self, result_dict):
     """
     See Storer#store(result_json)
@@ -69,6 +85,17 @@ class CouchbaseStorer(Storer):
     # Bulk insert (thread-safe)
     self.lock.acquire()
     # Ensure success
+    self.do_bulk_upsert(bulk_upsert)
+    self.lock.release()
+
+  def do_bulk_upsert(self, bulk_upsert):
+    """
+    Does upsert multi on whatever store is defined. It will loop until success.
+
+      Params: 
+        bulk_upsert [dict] - dictionary of key -> objects that are going to be 
+        upserted into the storage
+    """
     while True:
       try:
         self.db.upsert_multi(bulk_upsert)
@@ -77,4 +104,3 @@ class CouchbaseStorer(Storer):
       except Exception:
         print 'Exception Occurred: Trying Again'
         self.db = self._connect_db()
-    self.lock.release()
