@@ -12,12 +12,16 @@ from podcasts.series_driver import SeriesDriver
 from podcasts.episodes_driver import EpisodesDriver
 from podcasts.site_crawler import SiteCrawler
 from utils.couchbase_storer import CouchbaseStorer
+from utils.series_patcher import SeriesPatcher
 from utils.constants import *
 from utils.thread_pool import *
+import utils.log
 
 
 # Flask App
 app = Flask(__name__)
+logger = utils.log.logger
+patcher = SeriesPatcher("lol")
 
 
 def digest_podcasts():
@@ -42,12 +46,17 @@ def start_rss_polling():
   Create a thread pool and a job queue to check the rss feeds of every series
   in the podcasts bucket.
   """
+  logger.info("Starting RSS polling with {} threads and job queue of size {}".format(NUM_RSS_THREADS, JOB_QUEUE_SIZE))
   thread_pool = ThreadPool(NUM_RSS_THREADS, JOB_QUEUE_SIZE)
 
+  limit = 100
+  offset = 0
   for i in range(NUM_RSS_THREADS):
-    # args = (rss_feed_tups, check_time_stamp)
-    # thread_pool.add_job(patch_multiple, args)
-    pass
+    series_list = patcher.get_series_with_limit(limit, offset)
+    rss_feed_tups = patcher.create_rss_feed_tups(series_list)
+    args = (rss_feed_tups, CHECK_TIMESTAMP)
+    thread_pool.add_task(patcher.patch_multiple, args)
+    offset += limit
 
   thread_pool.wait_for_all()
 
@@ -84,5 +93,6 @@ if __name__ == '__main__':
   # schedule.every(15*MINUTES).seconds.do(start_rss_polling)
   # t = Thread(target=run_schedule)
   # t.start()
+  # start_rss_polling()
 
   app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)

@@ -48,10 +48,47 @@ class SeriesPatcher(object):
     ).get_single_result()
     return result['$1']
 
+  def get_series_with_limit(self, limit, offset):
+    """
+    Get a list of series from the podcasts bucket with limit and offset.
+
+      Params:
+        limit [int] - how many to get from bucket
+        offset [int] - index of where start getting from bucket
+
+      Returns:
+        a list of Series objects
+    """
+    query = 'SELECT *  FROM `{}` WHERE type="series" LIMIT {} OFFSET {}'.format(PODCASTS_BUCKET, limit, offset)
+    series_result = self.p_bucket.n1ql_query(query)
+
+    series_results = []
+    for row in series_result:
+      series_json = row['podcasts']
+      s = Series.from_db_json(series_json)
+      series_results.append(s)
+
+    return series_results
+
+  def create_rss_feed_tups(self, series_list):
+    """
+    Params:
+      series_list [list] - list of Series objects retrieved from DB
+    Returns:
+      a list of rss_feed_tups with format (series_id, rss_feed_url)
+    """
+    rss_feed_tups = []
+    for series in series_list:
+      series_id = series.id
+      rss_feed_url = series.feedUrl
+      rss_feed_tups.append((series_id, rss_feed_url))
+
+    return rss_feed_tups
+
   def patch_multiple(self, rss_feed_tups, check_timestamp=True):
     """
     Params:
-      rss_feed_tups [list] - list of (series_id, rss_feed_url, last_update) tuples
+      rss_feed_tups [list] - list of (series_id, rss_feed_url) tuples
 
     Returns:
       a list of True/False indicating whether or not the series in the index
@@ -59,8 +96,8 @@ class SeriesPatcher(object):
     """
     results = []
     for rss_feed_tup in rss_feed_tups:
-      series_id, rss_feed_url, last_update = rss_feed_tup
-      result = self.patch_series(series_id, rss_feed_url, last_update)
+      series_id, rss_feed_url = rss_feed_tup
+      result = self.patch_series(series_id, rss_feed_url, check_timestamp)
       results.append(result)
 
     return results
@@ -132,3 +169,5 @@ class SeriesPatcher(object):
 if __name__=="__main__":
   patcher = SeriesPatcher("lol")
   patcher.patch_series(1002937870, "http://feeds.soundcloud.com/users/soundcloud:users:156542883/sounds.rss");
+  series_list = patcher.get_series_with_limit(10,0)
+  rss_tups = patcher.create_rss_feed_tups(series_list)
