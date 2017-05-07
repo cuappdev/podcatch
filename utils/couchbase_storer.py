@@ -4,6 +4,7 @@ import threading
 import datetime
 import sys
 import os
+import pdb
 
 class CouchbaseStorer(Storer):
   """

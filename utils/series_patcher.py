@@ -48,12 +48,6 @@ class SeriesPatcher(object):
     ).get_single_result()
     return result['$1']
 
-  def patch_all(self):
-    """
-    Patch all series that currently exist in the database
-    """
-    pass
-
   def patch_multiple(self, rss_feed_tups, check_timestamp=True):
     """
     Params:
@@ -63,7 +57,14 @@ class SeriesPatcher(object):
       a list of True/False indicating whether or not the series in the index
       had a new episode to be updated.
     """
-    pass
+    results = []
+    for rss_feed_tup in rss_feed_tups:
+      series_id, rss_feed_url, last_update = rss_feed_tup
+      result = self.patch_series(series_id, rss_feed_url, last_update)
+      results.append(result)
+
+    return results
+
 
   def patch_series(self, series_id, rss_feed_url, check_timestamp=True):
     """
@@ -124,6 +125,8 @@ class SeriesPatcher(object):
       self.logger.info('Storing new episode_title: {}, series_title: {}'.format(ep['title'], ep['seriesTitle']))
 
     self.n_p_storer.store_episodes(series_id, ep_dicts)
+    self.podlog.update_series(series_id)
+    self.logger.info('Updated timestamp for series {}'.format(series_id))
     return True
 
 if __name__=="__main__":

@@ -27,3 +27,7 @@ LOGGER   = 'podcatch'
 
 # Series Updates
 UPDATE_TIME = 15*MINUTE
+
+# RSS Polling
+NUM_RSS_THREADS = 50 # until further testing
+JOB_QUEUE_SIZE = 1000

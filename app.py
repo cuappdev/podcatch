@@ -13,6 +13,8 @@ from podcasts.episodes_driver import EpisodesDriver
 from podcasts.site_crawler import SiteCrawler
 from utils.couchbase_storer import CouchbaseStorer
 from utils.constants import *
+from utils.thread_pool import *
+
 
 # Flask App
 app = Flask(__name__)
@@ -34,6 +36,20 @@ def digest_podcasts():
 
   # Grab all episodes once we have data stored
   EpisodesDriver(DIRECTORY, storer).eps_from_series()
+
+def start_rss_polling():
+  """
+  Create a thread pool and a job queue to check the rss feeds of every series
+  in the podcasts bucket.
+  """
+  thread_pool = ThreadPool(NUM_RSS_THREADS, JOB_QUEUE_SIZE)
+
+  for i in range(NUM_RSS_THREADS):
+    # args = (rss_feed_tups, check_time_stamp)
+    # thread_pool.add_job(patch_multiple, args)
+    pass
+
+  thread_pool.wait_for_all()
 
 
 def run_schedule():
@@ -65,6 +81,7 @@ def refresh(series_id):
 
 if __name__ == '__main__':
   # schedule.every(ONE_DAY).seconds.do(digest_podcasts)
+  # schedule.every(15*MINUTES).seconds.do(start_rss_polling)
   # t = Thread(target=run_schedule)
   # t.start()
 
