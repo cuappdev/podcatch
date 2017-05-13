@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from podcasts.storers.couchbase_storer import CouchbaseStorer
+from utils.couchbase_storer import CouchbaseStorer
 import json
 import os
 import time
@@ -11,15 +11,19 @@ def write_to_cb():
   into a local Couchbase instance
   """
 
+  CB_URL = os.environ['COUCHBASE_BASE_URL']
+  PODCASTS_BUCKET = os.environ['PODCASTS_BUCKET']
+
   # URL for Couchbase (assuming no password
   # for local dev env)
-  couchbase_url = 'couchbase://localhost:8091/podcasts'
+  couchbase_url = 'couchbase://{}/{}'.format(CB_URL, PODCASTS_BUCKET)
   storer = CouchbaseStorer(couchbase_url)
 
   # Load in jsons' file names
   json_files = []
   for _, _, filenames in os.walk('./data'):
     json_files.extend(filenames)
+  json_files = [f for f in json_files if '.json' in f]
 
   # Load in JSONS
   JSONS = []

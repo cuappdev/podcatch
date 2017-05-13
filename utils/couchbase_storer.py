@@ -1,5 +1,5 @@
-from couchbase.bucket import Bucket
 from podcasts.storers.storer import Storer
+from couchbase.bucket import Bucket
 import threading
 import datetime
 import sys
