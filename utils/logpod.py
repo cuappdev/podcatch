@@ -1,7 +1,7 @@
-import datetime
-import constants
-import time
 import os
+import datetime
+import time
+import utils.constants
 
 class LogPod(object):
   """
@@ -75,7 +75,7 @@ class LogPod(object):
     a series needs an update, given the series's series_id
     """
     last_update = self.last_updated(series_id)
-    if last_update == None: # Meaning we don't have it
+    if not last_update: # Meaning we don't have it
       return True, None
     diff = datetime.datetime.now() - last_update
     return (diff.total_seconds() > self.update_time), last_update

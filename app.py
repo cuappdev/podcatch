@@ -17,12 +17,10 @@ from utils.constants import *
 from utils.thread_pool import *
 import utils.log
 
-
 # Flask App
 app = Flask(__name__)
 logger = utils.log.logger
 patcher = SeriesPatcher("lol")
-
 
 def digest_podcasts():
   """
@@ -62,7 +60,7 @@ def start_rss_polling():
 
 
 def run_schedule():
-  """ 
+  """
   Check schedule and run pending
   """
   while 1:
@@ -77,12 +75,12 @@ def refresh(series_id):
     series_id [int] - id for the series as designated by apple
 
   Returns:
-    JSON object with keys "success" (either 0 or 1) and "episode" 
+    JSON object with keys "success" (either 0 or 1) and "episode"
     that contains the entire episode object.
 
   Given a series_id, checks to see if we should request apple
   to get new episodes. If there are new episodes, returns the new episode object.
-  """ 
+  """
   episode = {"series_id": series_id, "episode-id": 420, "description":"testing"}
   response = {"success": 0, "episode": episode}
   return json.dumps(response)

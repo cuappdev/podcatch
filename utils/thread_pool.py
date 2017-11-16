@@ -23,15 +23,14 @@ class Worker(Thread):
     while not empty:
       func, args, kargs = self.jobs.get()
       try:
-          func(*args, **kargs)
-      except Exception, e:
-          print e
+        func(*args, **kargs)
+      except Exception, e: # pylint: disable=W0703
+        print e
       finally:
-          self.jobs.task_done()
-          empty = self.jobs.empty()
+        self.jobs.task_done()
+        empty = self.jobs.empty()
 
-
-class ThreadPool():
+class ThreadPool(object):
   """
   A general thread pool that keeps a job queue of (func, args) where
   the function will be executed with the given args by a thread.
@@ -48,29 +47,7 @@ class ThreadPool():
     self.workers = [Worker(self.jobs) for _ in range(num_threads)]
 
   def add_task(self, func, args, **kargs):
-    self.jobs.put((func,args,kargs))
+    self.jobs.put((func, args, kargs))
 
   def wait_for_all(self):
     self.jobs.join()
-
-
-if __name__=="__main__":
-  # hand testing starting up threads that are less than the 
-  # number of jobs in the queue
-  # it should print 420 blazeit 10 times
-  total_jobs = 10
-  total_threads = 2
-
-  thread_pool = ThreadPool(total_threads, total_jobs)
-
-  def foo(arg1, arg2):
-    print arg1
-    print arg2
-
-  sample_args = ("420", "blazeit")
-
-  for _ in range(total_jobs):
-    thread_pool.add_task(foo, sample_args)
-
-  thread_pool.wait_for_all()
-

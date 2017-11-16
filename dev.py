@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 from utils.couchbase_storer import CouchbaseStorer
 import json
 import os

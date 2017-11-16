@@ -105,7 +105,7 @@ class SeriesPatcher(object):
 
   def patch_series(self, series_id, rss_feed_url, check_timestamp=True):
     """
-    Checks the RSS feed of the series and updates the new podcasts bucket 
+    Checks the RSS feed of the series and updates the new podcasts bucket
     if there are new episodes.
 
     Params:
@@ -135,7 +135,7 @@ class SeriesPatcher(object):
       episode_results.append(row)
 
     # we should already have at least 1
-    assert len(episode_results) > 0 
+    assert len(episode_results) > 0
 
     # results are ordered from newest to oldest
     rss = feedparser.parse(rss_feed_url)
