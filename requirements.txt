@@ -11,6 +11,7 @@ Jinja2==2.10
 lxml==4.1.1
 MarkupSafe==1.0
 mysql-connector==2.1.4
+numpy==1.13.3
 packaging==16.8
 py-podcast==1.0.5
 pyparsing==2.2.0
