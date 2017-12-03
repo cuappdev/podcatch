@@ -1,4 +1,5 @@
 import os
+import threading
 import podcasts.itunes as itunes
 from podcasts.models.series import Series
 from podcasts.models.episode import Episode
@@ -28,29 +29,48 @@ def get_episodes(connector):
     connector.read_batch('episodes', start=0, end=None, interval_size=1000)
   return episode_rows
 
-def diff_check_series_epsiodes(connector, single_series):
-  series_id = single_series.get('id')
-  query = 'SELECT * FROM episodes WHERE series_id = {}'.format(series_id)
+# All the data needed to perform an update
+def get_data(connector):
+  all_series = get_series(connector)
+  all_episodes = get_episodes(connector)
 
-  # Grab the episodes we currently have in the database
-  current_episodes = perform_query(connector, query)
+  series_ids_to_episodes = {s.get('id') : [] for s in all_series}
+  for e in all_episodes:
+    series_id_to_episodes[e.get('series_id')].append(e)
+
+  return all_series, series_ids_to_episodes
+
+def diff_check_single_series(connector, single_series, current_episodes):
   # Assumption: title = uniqueness indicator for the episodes of a series
   current_ep_titles = set([e.get('title') for e in current_episodes])
 
   # Grab the feed for this series
+  pcast_series = Series(s_id=single_series.get('id'), **single_series)
   episodes_from_feed = itunes.\
-    get_rss_feed_data_from_series(Series(**single_series)).\
+    get_rss_feed_data_from_series(pcast_series).\
     get('episodes')
 
+  # Novel episodes found as a result of reading the RSS feed
   new_episodes = \
     [e for e in episodes_from_feed if e.get('title') not in current_ep_titles]
-  #
-  # for e in new_episodes:
-  #   print e
+  return new_episodes
 
-  print len(current_episodes)
-  print len(episodes_from_feed)
-  print
+class DiffCheckThread(threading.Thread):
+  def __init__(self, input_queue, output_queue, series_ids_to_episodes):
+    super(DiffCheckThread, self).__init__()
+    self.input_queue = input_queue
+    self.output_queue = output_queue
+    self.series_ids_to_episodes = series_ids_to_episodes
+    self.daemon = True
+
+  def run(self):
+    # Check the queue for a series -> lookup the episodes ->
+    # diff check -> newest episodes
+    # -> add all to output queue
+    pass
+
+# Get data -> diff check -> storage
+# TODO
 
 if __name__ == '__main__':
   conn = create_connector()
@@ -58,4 +78,4 @@ if __name__ == '__main__':
   series = get_series(conn)
 
   for s in series:
-    diff_check_series_epsiodes(conn, s)
+    diff_check_single_series_epsiodes(conn, s)
