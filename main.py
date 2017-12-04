@@ -1,6 +1,7 @@
 import os
 import threading
 import datetime
+import logging
 from Queue import Queue, Empty
 import podcasts.itunes as itunes
 from podcasts.models.series import Series
@@ -11,6 +12,9 @@ PODCAST_DB_USERNAME = os.getenv('PODCAST_DB_USERNAME')
 PODCAST_DB_PASSWORD = os.getenv('PODCAST_DB_PASSWORD')
 PODCAST_DB_HOST = os.getenv('PODCAST_DB_HOST')
 PODCAST_DB_NAME = os.getenv('PODCAST_DB_NAME')
+
+# Make sure we don't see logs we don't want
+logging.getLogger('py-podcast').disabled = True
 
 def create_connector():
   connector = MySQLConnector(PODCAST_DB_USERNAME, PODCAST_DB_PASSWORD, \
@@ -28,13 +32,14 @@ def get_series(connector):
 
 def get_episodes(connector):
   episode_rows = \
-    connector.read_batch('episodes', start=0, end=None, interval_size=1000)
+    connector.read_batch('episodes', start=0, end=None, interval_size=100000000)
   return episode_rows
 
 # All the data needed to perform an update
 def get_data(connector):
   all_series = get_series(connector)
   all_episodes = get_episodes(connector)
+  print len(all_episodes)
 
   series_ids_to_episodes = {s.get('id') : [] for s in all_series}
   for e in all_episodes:
@@ -44,7 +49,12 @@ def get_data(connector):
 
 def diff_check_single_series(connector, single_series, current_episodes):
   # Assumption: title = uniqueness indicator for the episodes of a series
-  current_ep_titles = set([e.get('title') for e in current_episodes])
+  current_ep_titles = set([e['title'] for e in current_episodes])
+
+  print 'Current titles:'
+  for title in current_ep_titles:
+    print title
+  print
 
   # Grab the feed for this series
   pcast_series = Series(s_id=single_series.get('id'), **single_series)
@@ -53,8 +63,8 @@ def diff_check_single_series(connector, single_series, current_episodes):
     get('episodes')
 
   # Novel episodes found as a result of reading the RSS feed
-  new_episodes = \
-    [e for e in episodes_from_feed if e.get('title') not in current_ep_titles]
+  new_episodes = [e for e in episodes_from_feed \
+    if e.get('title').decode('utf-8') not in current_ep_titles]
 
   # Print-based feedback
   # TODO - Remove?
@@ -118,8 +128,20 @@ def main():
 
   # PART 3: Store the new episodes
   for e in new_episodes:
+    # Things that don't belong in the SQL row
+    del e['image_url_sm']
+    del e['image_url_lg']
+    del e['type']
+    del e['series_title']
+    # Necessary fields for a successful write
+    e['recommendations_count'] = 0
+    e['tags'] = ';'.join(e['tags'])
     e['created_at'] = datetime.datetime.now()
     e['updated_at'] = datetime.datetime.now()
+    e['real_duration_written'] = 0
+    e['pub_date'] = None if e.get('pub_date') is None else \
+      datetime.datetime.fromtimestamp(e.get('pub_date'))
+
   connector.write_batch('episodes', new_episodes)
 
 if __name__ == '__main__':
