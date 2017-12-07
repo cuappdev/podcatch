@@ -32,7 +32,7 @@ def get_series(connector):
 
 def get_episodes(connector):
   episode_rows = \
-    connector.read_batch('episodes', start=0, end=None, interval_size=100000000)
+    connector.read_batch('episodes', start=0, end=None, interval_size=1000)
   return episode_rows
 
 # All the data needed to perform an update
