@@ -3,7 +3,7 @@ from constants import *
 from logpod import LogPod
 from couchbase_storer import CouchbaseStorer
 
-# Py-Podcast
+# podfetch
 from podcasts.series_crawler import SeriesCrawler
 from podcasts.episode_worker import EpisodeWorker
 from podcasts.site_crawler import SiteCrawler
