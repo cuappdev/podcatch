@@ -14,7 +14,7 @@ PODCAST_DB_HOST = os.getenv('PODCAST_DB_HOST')
 PODCAST_DB_NAME = os.getenv('PODCAST_DB_NAME')
 
 # Make sure we don't see logs we don't want
-logging.getLogger('py-podcast').disabled = True
+logging.getLogger('podfetch').disabled = True
 
 def create_connector():
   connector = MySQLConnector(PODCAST_DB_USERNAME, PODCAST_DB_PASSWORD, \
