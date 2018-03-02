@@ -1,3 +1,4 @@
+import sys
 import os
 import threading
 import datetime
@@ -8,10 +9,10 @@ from podcasts.models.series import Series
 from podcasts.models.episode import Episode
 from appdev.connectors import MySQLConnector
 
-PODCAST_DB_USERNAME = os.getenv('PODCAST_DB_USERNAME')
-PODCAST_DB_PASSWORD = os.getenv('PODCAST_DB_PASSWORD')
-PODCAST_DB_HOST = os.getenv('PODCAST_DB_HOST')
-PODCAST_DB_NAME = os.getenv('PODCAST_DB_NAME')
+PODCAST_DB_USERNAME = sys.argv[1]
+PODCAST_DB_PASSWORD = sys.argv[2]
+PODCAST_DB_HOST = sys.argv[3]
+PODCAST_DB_NAME = sys.argv[4]
 
 # Make sure we don't see logs we don't want
 logging.getLogger('podfetch').disabled = True
