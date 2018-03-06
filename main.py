@@ -113,7 +113,7 @@ def main():
   output_queue = Queue()
 
   print 'Starting diff checker'
-  for _ in xrange(0, 25):
+  for _ in xrange(0, 5):
     t = DiffCheckThread(input_queue, output_queue, \
       connector, series_ids_to_episodes)
     t.start()
