@@ -40,7 +40,6 @@ def get_episodes(connector):
 def get_data(connector):
   all_series = get_series(connector)
   all_episodes = get_episodes(connector)
-  print len(all_episodes)
 
   series_ids_to_episodes = {s.get('id') : [] for s in all_series}
   for e in all_episodes:
@@ -52,11 +51,6 @@ def diff_check_single_series(connector, single_series, current_episodes):
   # Assumption: title = uniqueness indicator for the episodes of a series
   current_ep_titles = set([e['title'] for e in current_episodes])
 
-  print 'Current titles:'
-  for title in current_ep_titles:
-    print title
-  print
-
   # Grab the feed for this series
   pcast_series = Series(s_id=single_series.get('id'), **single_series)
   episodes_from_feed = itunes.\
@@ -67,12 +61,9 @@ def diff_check_single_series(connector, single_series, current_episodes):
   new_episodes = [e for e in episodes_from_feed \
     if e.get('title').decode('utf-8') not in current_ep_titles]
 
-  # Print-based feedback
-  # TODO - Remove?
-  if new_episodes:
-    print 'Got these new episodes:'
-    for e in new_episodes:
-      print e.get('title')
+  print u'{}: {} new episodes'.format(single_series.get('title'),
+                                      0 if not new_episodes
+                                      else len(new_episodes)).encode('utf-8')
 
   return new_episodes
 
@@ -108,9 +99,11 @@ class DiffCheckThread(threading.Thread):
 # Get data -> diff check -> storage
 def main():
   # Create our connection to the database
+  print 'Creating connector'
   connector = create_connector()
 
   # PART 1: Grab the data
+  print 'Fetching series and episode data'
   all_series, series_ids_to_episodes = get_data(connector)
 
   # PART 2: Multithread patching the data
@@ -119,6 +112,7 @@ def main():
     input_queue.put(s)
   output_queue = Queue()
 
+  print 'Starting diff checker'
   for _ in xrange(0, 25):
     t = DiffCheckThread(input_queue, output_queue, \
       connector, series_ids_to_episodes)
@@ -127,6 +121,7 @@ def main():
   input_queue.join()
   new_episodes = list(output_queue.queue)
 
+  print 'Formatting episodes'
   # PART 3: Store the new episodes
   for e in new_episodes:
     # Things that don't belong in the SQL row
@@ -143,7 +138,9 @@ def main():
     e['pub_date'] = None if e.get('pub_date') is None else \
       datetime.datetime.fromtimestamp(e.get('pub_date'))
 
+  print 'Starting write'
   connector.write_batch('episodes', new_episodes)
+  print 'Done'
 
 if __name__ == '__main__':
   main()
