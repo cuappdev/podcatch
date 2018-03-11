@@ -3,6 +3,7 @@ import os
 import threading
 import datetime
 import logging
+import socket
 from Queue import Queue, Empty
 import podcasts.itunes as itunes
 from podcasts.models.series import Series
@@ -16,6 +17,8 @@ PODCAST_DB_NAME = sys.argv[4]
 
 # Make sure we don't see logs we don't want
 logging.getLogger('podfetch').disabled = True
+
+SOCKET_TIMEOUT = 30
 
 def create_connector():
   connector = MySQLConnector(PODCAST_DB_USERNAME, PODCAST_DB_PASSWORD, \
@@ -53,6 +56,7 @@ def diff_check_single_series(connector, single_series, current_episodes):
 
   # Grab the feed for this series
   pcast_series = Series(s_id=single_series.get('id'), **single_series)
+
   episodes_from_feed = itunes.\
     get_rss_feed_data_from_series(pcast_series).\
     get('episodes')
@@ -61,9 +65,10 @@ def diff_check_single_series(connector, single_series, current_episodes):
   new_episodes = [e for e in episodes_from_feed \
     if e.get('title').decode('utf-8') not in current_ep_titles]
 
-  print u'{}: {} new episodes'.format(single_series.get('title'),
-                                      0 if not new_episodes
-                                      else len(new_episodes)).encode('utf-8')
+  num_new_episodes = len(new_episodes)
+  if num_new_episodes > 0:
+    print u'{}: {} new episodes'\
+          .format(single_series.get('title'), num_new_episodes).encode('utf-8')
 
   return new_episodes
 
@@ -92,12 +97,19 @@ class DiffCheckThread(threading.Thread):
           self.output_queue.put(e)
       except Empty as e:
         print e
+      except socket.timeout:
+        print 'SOCKET TIMEOUT ON SERIES "{}", {}'.\
+              format(gotten_series['title'], gotten_series['feed_url'])
+      except Exception as e:
+        print e
       finally:
         self.input_queue.task_done()
         empty = self.input_queue.empty()
 
 # Get data -> diff check -> storage
 def main():
+  socket.setdefaulttimeout(None)
+
   # Create our connection to the database
   print 'Creating connector'
   connector = create_connector()
@@ -111,6 +123,8 @@ def main():
   for s in all_series:
     input_queue.put(s)
   output_queue = Queue()
+
+  socket.setdefaulttimeout(SOCKET_TIMEOUT)
 
   print 'Starting diff checker'
   for _ in xrange(0, 5):
