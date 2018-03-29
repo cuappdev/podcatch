@@ -16,6 +16,7 @@ PODCAST_DB_USERNAME = sys.argv[1]
 PODCAST_DB_PASSWORD = sys.argv[2]
 PODCAST_DB_HOST = sys.argv[3]
 PODCAST_DB_NAME = sys.argv[4]
+DB_NAME = sys.argv[5]
 
 # Make sure we don't see logs we don't want
 logging.getLogger('podfetch').disabled = True
@@ -23,8 +24,8 @@ logging.getLogger('podfetch').disabled = True
 SOCKET_TIMEOUT = 30
 
 def create_db_connector():
-  connector = MySQLConnector(DB_USERNAME, DB_PASSWORD, \
-    DB_HOST, DB_NAME)
+  connector = MySQLConnector(PODCAST_DB_USERNAME, PODCAST_DB_PASSWORD, \
+    PODCAST_DB_HOST, DB_NAME)
   return connector
 
 def create_podcast_db_connector():
@@ -38,14 +39,14 @@ def perform_query(connector, query):
 
 def update_series_for_topics(connector, updates):
   queries = [
-      'UPDATE series_for_topic SET series_list = {} WHERE topic_id = {}'
-      .format(u['series_list'], u['topic_id'])
+      'UPDATE series_for_topic SET updated_at = CAST("{}" AS DATETIME), series_list = "{}" WHERE topic_id = {}'
+      .format(u['updated_at'], u['series_list'], u['topic_id'])
       for u in updates
   ]
   return connector.execute_batch(queries)
 
 def get_series_for_topics(connector):
-  rows = connector.read_batch('series_for_topics', interval_size=100)
+  rows = connector.read_batch('series_for_topic', interval_size=100)
   return rows
 
 def get_series(connector):
@@ -132,7 +133,7 @@ def main():
   print 'Creating db connector'
   db_connector = create_db_connector()
 
-  print 'Fetching current series_for_topics'
+  print 'Fetching current series_for_topic'
   current_series_for_topics = get_series_for_topics(db_connector)
 
   print 'Fetching new series_for_topic updates'
@@ -140,7 +141,7 @@ def main():
 
   if inserts:
     print 'Inserting new series_for_topics'
-    db_connector.write_batch('series_for_topics', inserts)
+    db_connector.write_batch('series_for_topic', inserts)
 
   print 'Updating series_for_topics'
   update_series_for_topics(db_connector, updates)
