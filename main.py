@@ -8,19 +8,27 @@ from Queue import Queue, Empty
 import podcasts.itunes as itunes
 from podcasts.models.series import Series
 from podcasts.models.episode import Episode
+from utils.series_for_topic_fetcher import \
+ generate_series_for_topic_models
 from appdev.connectors import MySQLConnector
 
 PODCAST_DB_USERNAME = sys.argv[1]
 PODCAST_DB_PASSWORD = sys.argv[2]
 PODCAST_DB_HOST = sys.argv[3]
 PODCAST_DB_NAME = sys.argv[4]
+DB_NAME = sys.argv[5]
 
 # Make sure we don't see logs we don't want
 logging.getLogger('podfetch').disabled = True
 
 SOCKET_TIMEOUT = 30
 
-def create_connector():
+def create_db_connector():
+  connector = MySQLConnector(PODCAST_DB_USERNAME, PODCAST_DB_PASSWORD, \
+    PODCAST_DB_HOST, DB_NAME)
+  return connector
+
+def create_podcast_db_connector():
   connector = MySQLConnector(PODCAST_DB_USERNAME, PODCAST_DB_PASSWORD, \
     PODCAST_DB_HOST, PODCAST_DB_NAME)
   return connector
@@ -28,6 +36,18 @@ def create_connector():
 def perform_query(connector, query):
   rows = connector.execute_batch([query])[0]
   return rows if rows else []
+
+def update_series_for_topics(connector, updates):
+  queries = [
+      'UPDATE series_for_topic SET updated_at = CAST("{}" AS DATETIME), series_list = "{}" WHERE topic_id = {}'
+      .format(u['updated_at'], u['series_list'], u['topic_id'])
+      for u in updates
+  ]
+  return connector.execute_batch(queries)
+
+def get_series_for_topics(connector):
+  rows = connector.read_batch('series_for_topic', interval_size=100)
+  return rows
 
 def get_series(connector):
   rows = \
@@ -110,9 +130,28 @@ class DiffCheckThread(threading.Thread):
 def main():
   socket.setdefaulttimeout(None)
 
+  print 'Creating db connector'
+  db_connector = create_db_connector()
+
+  print 'Fetching current series_for_topic'
+  current_series_for_topics = get_series_for_topics(db_connector)
+
+  print 'Fetching new series_for_topic updates'
+  inserts, updates = generate_series_for_topic_models(current_series_for_topics)
+
+  if inserts:
+    print 'Inserting new series_for_topics'
+    db_connector.write_batch('series_for_topic', inserts)
+
+  print 'Updating series_for_topics'
+  update_series_for_topics(db_connector, updates)
+
+  print 'Closing db connector'
+  db_connector.close()
+
   # Create our connection to the database
-  print 'Creating connector'
-  connector = create_connector()
+  print 'Creating podcast db connector'
+  connector = create_podcast_db_connector()
 
   # PART 1: Grab the data
   print 'Fetching series and episode data'
