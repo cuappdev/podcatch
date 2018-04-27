@@ -174,9 +174,6 @@ def main():
   connector.write_batch('series', unstored_series)
   connector.write_batch('episodes', unstored_episodes)
 
-  connector.close()
-  exit()
-
   # PART 2: Multithread patching the data
   input_queue = Queue()
   for s in all_series:
