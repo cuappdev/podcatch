@@ -201,7 +201,9 @@ def main():
     del e['series_title']
     # Necessary fields for a successful write
     e['recommendations_count'] = 0
-    e['tags'] = ';'.join(e['tags'])
+    tags_list = filter(lambda t: t is not None, e.get('tags'))
+    tags = '' if not tags_list else ';'.join(tags_list)
+    e['tags'] = tags
     e['created_at'] = datetime.datetime.now()
     e['updated_at'] = datetime.datetime.now()
     e['real_duration_written'] = 0

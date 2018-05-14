@@ -53,6 +53,8 @@ def extract_series_and_episodes_from_feed(feed):
           dt.fromtimestamp(episode_dict.get('pub_date'))
       except ValueError:
         pub_date = None
+      tags_list = filter(lambda t: t is not None, episode_dict.get('tags'))
+      tags = '' if not tags_list else ';'.join(tags_list)
       ep = {
           'title': episode_dict.get('title').decode('utf-8'),
           'author': episode_dict.get('author').decode('utf-8'),
@@ -61,7 +63,7 @@ def extract_series_and_episodes_from_feed(feed):
           'duration': episode_dict.get('duration'),
           'real_duration_written': False,
           'audio_url': episode_dict.get('audio_url'),
-          'tags': ';'.join(episode_dict.get('tags')),
+          'tags': tags,
           'series_id': series['id'],
           'recommendations_count': 0,
           'created_at': dt.now(),
