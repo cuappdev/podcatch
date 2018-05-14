@@ -9,7 +9,7 @@ import podcasts.itunes as itunes
 from podcasts.models.series import Series
 from podcasts.models.episode import Episode
 from utils.series_for_topic_fetcher import \
- generate_series_for_topic_models
+ generate_series_for_topic_models, gather_unstored_series_for_topic_with_episodes
 from appdev.connectors import MySQLConnector
 
 PODCAST_DB_USERNAME = sys.argv[1]
@@ -156,6 +156,23 @@ def main():
   # PART 1: Grab the data
   print 'Fetching series and episode data'
   all_series, series_ids_to_episodes = get_data(connector)
+
+  # Determine unstored top series
+  print 'Determining unstored top series'
+  unstored_series_ids = []
+  for series_for_topic in inserts + updates:
+    series_list = series_for_topic['series_list'].split(',')
+    for sid in series_list:
+      if int(sid) not in series_ids_to_episodes:
+        unstored_series_ids.append(sid)
+
+  print 'Querying iTunes for unstored top series'
+  unstored_series, unstored_episodes = \
+    gather_unstored_series_for_topic_with_episodes(unstored_series_ids)
+
+  print 'Saving unstored top series'
+  connector.write_batch('series', unstored_series)
+  connector.write_batch('episodes', unstored_episodes)
 
   # PART 2: Multithread patching the data
   input_queue = Queue()
