@@ -155,7 +155,6 @@ def main():
 
   print 'Closing db connector'
   db_connector.close()
-  del inserts, updates
   print_mem_usage()
 
   # Create our connection to the database
@@ -175,6 +174,8 @@ def main():
     for sid in series_list:
       if int(sid) not in series_ids_to_episodes:
         unstored_series_ids.append(sid)
+
+  del inserts, updates
 
   print 'Querying iTunes for unstored top series'
   unstored_series, unstored_episodes = \
