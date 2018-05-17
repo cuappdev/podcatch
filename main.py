@@ -4,6 +4,7 @@ import threading
 import datetime
 import logging
 import socket
+import psutil
 from Queue import Queue, Empty
 import podcasts.itunes as itunes
 from podcasts.models.series import Series
@@ -22,6 +23,10 @@ DB_NAME = sys.argv[5]
 logging.getLogger('podfetch').disabled = True
 
 SOCKET_TIMEOUT = 30
+
+def print_mem_usage():
+  process = psutil.Process(os.getpid())
+  print 'Memory usage: {}'.format(process.memory_info().rss)
 
 def create_db_connector():
   connector = MySQLConnector(PODCAST_DB_USERNAME, PODCAST_DB_PASSWORD, \
@@ -128,6 +133,7 @@ class DiffCheckThread(threading.Thread):
 
 # Get data -> diff check -> storage
 def main():
+  print_mem_usage()
   socket.setdefaulttimeout(None)
 
   print 'Creating db connector'
@@ -138,6 +144,7 @@ def main():
 
   print 'Fetching new series_for_topic updates'
   inserts, updates = generate_series_for_topic_models(current_series_for_topics)
+  print_mem_usage()
 
   if inserts:
     print 'Inserting new series_for_topics'
@@ -148,6 +155,8 @@ def main():
 
   print 'Closing db connector'
   db_connector.close()
+  del inserts, updates
+  print_mem_usage()
 
   # Create our connection to the database
   print 'Creating podcast db connector'
@@ -156,6 +165,7 @@ def main():
   # PART 1: Grab the data
   print 'Fetching series and episode data'
   all_series, series_ids_to_episodes = get_data(connector)
+  print_mem_usage()
 
   # Determine unstored top series
   print 'Determining unstored top series'
@@ -175,10 +185,15 @@ def main():
   connector.write_batch('episodes', unstored_episodes)
 
   # PART 2: Multithread patching the data
+  print 'Creating input and output Queues'
+  print_mem_usage()
   input_queue = Queue()
   for s in all_series:
     input_queue.put(s)
   output_queue = Queue()
+
+  del all_series
+  print_mem_usage()
 
   socket.setdefaulttimeout(SOCKET_TIMEOUT)
 
@@ -188,8 +203,13 @@ def main():
       connector, series_ids_to_episodes)
     t.start()
 
+  print 'Finished diff checker'
   input_queue.join()
+  del input_queue
+  print_mem_usage()
   new_episodes = list(output_queue.queue)
+  del output_queue
+  print_mem_usage()
 
   print 'Formatting episodes'
   # PART 3: Store the new episodes
@@ -210,6 +230,7 @@ def main():
     e['pub_date'] = None if e.get('pub_date') is None else \
       datetime.datetime.fromtimestamp(e.get('pub_date'))
 
+  print_mem_usage()
   print 'Starting write'
   connector.write_batch('episodes', new_episodes)
   print 'Done'
